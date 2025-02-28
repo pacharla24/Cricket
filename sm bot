@@ -1,0 +1,637 @@
+var botName = "Enbridge Gas";
+let config = require("./config.json");
+var botId = config.credentials.botId
+const { response } = require("express");
+const path = require('path');
+const puppeteer = require('puppeteer');
+const WebSocket = require('ws');
+var FormData = require('form-data');
+let fs = require('fs');
+let request = require('request');
+var _ = require('lodash');
+var utils = require("./utils");
+const reCaptchamessage = require('./recaptcha.js');
+var sdk = require("./lib/sdk");
+var pub = require("./lib/RedisClient.js").createClient(config.redis);
+const configHeaders = config.headers;
+//var reCaptcharesponse = require('./captchaCheck');
+
+function requestAPI(options) {
+    return new Promise((resolve, reject) => {
+        request(options, (err, response, body) => {
+            if (err) {
+                return reject(err);
+            }
+            //console.log(JSON.stringify(response));
+            return resolve(body);
+        })
+    })
+}
+
+
+const createAndConfigureSockets = (userData, chatData) => {
+    try {
+        const socketURL = chatData.WebSocketURL;
+        const uid = userData.context.session.UserContext._id;
+        const ws = new WebSocket(socketURL);
+        ws.on('error', () => { console.error });
+        ws.on('open', function open() {
+            console.log("connected")
+            ws.send(JSON.stringify(
+                {
+                    "method": "connect",
+                    "params": [
+                        {
+                            "LastMessageID": "0"
+                        }
+                    ],
+                    "id": uid
+                }
+            ))
+        });
+        ws.on('message', (data) => {
+            data = JSON.parse(data.toString());
+            switch (data.method) {
+                case "addMessage":
+                    if (data.params[0].Values.PersonType === "operator") {
+                        var uid = userData.context.session.UserContext._id
+                        userData.message = data.params[0].Values.Text.replace(/<[/]{0,}p>/g, "")
+                        console.log("User Message to Agent : ", userData.message + " User id :" + uid)
+                        userData.overrideMessagePayload = getOverrideMessagePayload(userData.message, userData.context.session.BotUserSession.lastMessage.channel)
+                        sdk.sendUserMessage(userData);
+                    }
+                    break;
+                case "updateTyper":
+                    if (data.params[0].Values.PersonType === "operator") {
+                        userData.overrideMessagePayload = displayTypingIndicator(data.params[0].Values.IsTyping);
+                        sdk.sendUserMessage(userData);
+                    }
+                    break;
+                case "updateBusy":
+                    if (data.params[0].Position > 0) {
+                        console.log("queue position", data.params[0].Position)
+                        userData.overrideMessagePayload = getQueuePositionTemplate(config.message.inQueue);
+                    } else {
+                        userData.overrideMessagePayload = getQueuePositionTemplate(config.message.nextInQueue);
+                    }
+                    sdk.sendUserMessage(userData);
+                    break;
+                case "updateChat":
+                    var uid = userData.context.session.UserContext._id
+                    setTimeout(() => {
+                        if (data.params[0].Values && data.params[0].Values.EndedReason && (data.params[0].Values.EndedReason == "operator" || data.params[0].Values.EndedReason == "disconnect")) {
+                            console.log("Method : UpdateChat, Ended reason: ",data.params[0].Values.EndedReason +" user id: ",uid)
+                            pub.get(`chatkey_${botId}_${uid}`, async function (err, chatInput) {
+                                if (chatInput) {
+                                    userData.sendEndMessage = true;
+                                    clearAgentSession(config.message.chatclosurebyAgent, userData);
+                                }
+                            });
+                        }
+                    }, 1000)
+                    break;
+                case "closed":
+                    var uid = userData.context.session.UserContext._id
+                    console.log("Agent session closed " + JSON.stringify(data) +" :user id :" +uid);
+                    //When user closed the chat from the UI side, for that also we are getting a socket evenet. We have already cleared everything and don't need to call clearAgentSession method again.
+                    pub.get(`chatkey_${botId}_${uid}`, async function (err, chatInput) {
+                        if (chatInput) {
+                            userData.sendEndMessage = true;
+                            clearAgentSession(config.message.chatclosurebyAgent, userData);
+                        }
+                    });
+                    break;
+                case "heartbeat":
+                    // ws.send(JSON.stringify({
+                    //     "method": "heartbeat",
+                    //     "params": null,
+                    //     "id": uid
+                    // }))
+                    //New code to fix disconnect issue after 5 minutes
+                    ws.send(
+                        JSON.stringify({
+                          result: {
+                            response: "ack"
+                          },
+                          error: null,
+                          id: uid
+                        })
+                      );
+                      
+                    var uid = userData.context.session.UserContext._id
+                    console.log("Heartbeat sent for user id :" + uid);
+                    break;
+            }
+        });
+        ws.on("unexpected-response", () => {
+            console.log(`For ID ${uid} - unexpected response`);
+        })
+        ws.on("ping", () => {
+            console.log(`For ID ${uid} - ping`);
+        })
+        ws.on("pong", () => {
+            console.log(`For ID ${uid} - pong`);
+        })
+        ws.on("upgrade", () => {
+            console.log(`For ID ${uid} - upgrade`);
+        })
+    } catch (err) {
+        console.log(`For ID ${uid} - ${err}`)
+    }
+
+}
+
+/*
+ * This is the most basic example of BotKit.
+ *
+ * It showcases how the BotKit can intercept the message being sent to the bot or the user.
+ *
+ * We can either update the message, or chose to call one of 'sendBotMessage' or 'sendUserMessage'
+ */
+function basicMessageOverride(data, metaTags) {
+    data.toJSON = function () {
+        return {
+            __payloadClass: 'OnMessagePayload',
+            requestId: data.requestId,
+            botId: data.botId,
+            componentId: data.componentId,
+            sendUserMessageUrl: data.sendUserMessageUrl,
+            sendBotMessageUrl: data.sendBotMessageUrl,
+            context: data.context,
+            channel: data.channel,
+            message: data.message,
+            overrideMessagePayload: data.overrideMessagePayload,
+            metaTags: metaTags
+        };
+    }
+    return data;
+}
+
+/*
+async function gethistorypdf(req, res) {
+    var visitorId = req.query.visitorId;
+    var sessionId = req.query.sessionId;
+    //const browser = await puppeteer.launch({ headless: true });
+    console.log("chat History pdf :" +visitorId)
+    const browser = await puppeteer.launch({ headless: true,args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox'
+      ] });
+    const page = await browser.newPage();
+    //var targetPage = `http://localhost:${config.server.port}/history/index.html?visitorId=${visitorId}`
+    //`http://localhost:${config.server.port}/history/index.html?visitorId=${visitorId}&sessionId=${sessionId}`;
+    var targetPage = config.app.url + config.app.apiPrefix + "/history/index.html?visitorId=" + visitorId
+    console.log("chat pdf link", targetPage)
+    await page.goto(targetPage, { waitUntil: 'networkidle2' });
+    const pdf = await page.pdf({ format: 'A4' });
+    await browser.close();
+    res.contentType("application/pdf");
+    return res.send(pdf);
+}
+*/
+
+async function gethistorypdf(req, res) {
+    var visitorId = req.query.visitorId;
+    var sessionId = req.query.sessionId;
+    const browser = await puppeteer.launch({ headless: true });
+    const page = await browser.newPage(); //`${curl}/history/index.html?visitorId=${userId}`
+    //var curl = config.app.url;
+	console.log("chat History pdf :" +visitorId)									 
+    //var targetPage = `${curl}/history/index.html?visitorId=${visitorId}`
+    //`http://localhost:${config.server.port}/history/index.html?visitorId=${visitorId}&sessionId=${sessionId}`;
+	var targetPage = config.app.url + config.app.apiPrefix + "/history/index.html?visitorId=" + visitorId																									 
+    console.log("chat pdf link", targetPage)
+    await page.goto(targetPage, { waitUntil: 'networkidle2' });
+    const pdf = await page.pdf({ format: 'A4' });
+    await browser.close();
+    res.contentType("application/pdf");
+    return res.send(pdf);
+}
+
+function countWords(str) {
+    return str.trim().split(/\s+/).length;
+}
+
+module.exports = {
+    botId: botId,
+    botName: botName,
+
+    on_user_message: async function (requestId, data, callback) {
+        let uid = data.context.session.UserContext._id;
+        let conversationSessionId = data.context.session.BotUserSession.conversationSessionId
+        pub.get(`chatkey_${botId}_${uid}`, async function (err, chatInput) {
+            if (chatInput) {
+                //console.log("In agent transfer " + "chatInput : " + chatInput + " AT :" + data.agent_transfer);
+                if (data.message && (data.message.toLowerCase() === "clear" || data.message.toLowerCase() === "clearagent" || data.message.toLowerCase() === "closeconversationsessionbyuser")) {
+                    let message = config.message.chatEndedByUser;
+                    //clearAgentSession(message, data, callback);
+                    clearAgentSessionAtGenesys(message, data, callback)
+                }
+
+                else {
+                    sdk.extendRequestId(data);
+                    pub.set(`data_${botId}_${uid}`, JSON.stringify(data));
+                    return sendMessageToAgent(data, JSON.parse(chatInput));
+                }
+            } else {
+                //Bot is talking to the bot
+                console.log("In bot mode " + "chatInput : " + chatInput + " AT :" + data.agent_transfer);
+
+                if (data.message) {
+                    if (data.message && (data.message.toLowerCase() === "clear" || data.message.toLowerCase() === "clearagent")) {
+                        sdk.clearAgentSession(data);
+                    }
+                    var wordCount = countWords(data.message);
+                    if (wordCount > 15) {
+                        data.message = "";
+                        data.metaInfo.nlMeta = {
+                            intent: 'Agent Transfer',
+                            interruptionOptions: 'discardAll'
+                        }
+                    }
+                }
+                return sdk.sendBotMessage(data, callback);
+            }
+        })
+    },
+    on_bot_message: function (requestId, data, callback) {
+
+        let uid = data.context.session.opts.userId;
+        let conversationSessionId = data.context.session.BotUserSession.conversationSessionId
+        if (data.message == "Please provide a valid message") {
+            return sdk.skipUserMessage(data);
+        }
+        if (data.context && data.context.dialog_tone && data.context.dialog_tone.length && data.context.dialog_tone[0].tone_name && data.context.dialog_tone[0].level) {
+            var metaTags = {};
+            metaTags.sessionMetaTags = [
+                { "name": "sessionUser", "value": (data.context.session.UserContext.customData && data.context.session.UserContext.customData.emailId) ? data.context.session.UserContext.customData.emailId : '' },
+                { "name": "score", "value": data.context.dialog_tone[0].level },
+                { "name": "tone", "value": data.context.dialog_tone[0].tone_name },
+                { "name": "sst", "value": data.context.session.BotUserSession.messageDate ? data.context.session.BotUserSession.messageDate : '' }
+            ];
+            data.metaTags = metaTags;
+        }
+        //Sends back the message to user
+
+        return sdk.sendUserMessage(data, callback);
+    },
+    on_agent_transfer: function (requestId, data, callback) {
+
+        return connectToAgent(data, callback);
+        //return callback(null, data);
+    },
+    on_event: function (requestId, data, callback) {
+
+        return callback(null, data);
+    },
+    on_alert: function (requestId, data, callback) {
+
+        return sdk.sendAlertMessage(data, callback);
+    },
+    on_client_event: function (requestId, data, callback) {
+        let uuid = data.context.session.opts.userId;
+        var userEvent = "";
+        var isTyping;
+        let uid = data.context.session.UserContext._id;
+        if (data && data.customEvent !== undefined) {
+            userEvent = data.customEvent
+            console.log("userEvent", data.customEvent)
+        }
+        // if(userEvent!==undefined && userEvent=="CLOSE_CONVERSATIONSESSION_BY_USER")
+        // {
+        //     data.message = message;
+        //     pub.get(`chatkey_${botId}_${uid}`, async function (err, chatInput) {
+        //         if (chatInput) {
+        //             console.log("in CLOSE_CONVERSATIONSESSION_BY_USER");
+        //             clearAgentSessionAtGenesys(message, data, callback)
+        //                //clearAgentSession(message, data, callback);
+        //         }})
+        // }
+        if (userEvent !== undefined && userEvent == 'START_TYPING') {
+            isTyping = true
+            console.log("user Event : ", data.customEvent, " user id :" + uuid)
+        }
+        if (userEvent !== undefined && userEvent == 'STOP_TYPING') {
+            isTyping = false
+            console.log("user Event : ", data.customEvent, " user id :" + uuid)
+        }
+        visitorTyping(data, isTyping);
+    },
+    downloadfile: function (req, res, fileId) {
+        downloadfile(req, res, fileId)
+    },
+
+    //gethistory: gethistory,
+    gethistorypdf: gethistorypdf
+
+};
+
+
+async function connectToAgent(data, callback) {
+    data.context.session.BotUserSession.startTimeOfAgentConversation = new Date()
+    let uid = data.context.session.opts.userId;
+    try {
+        let chatData = await initiateChat(data);
+        // printLogStatement('initiate response');
+        //console.log("initial response " + JSON.stringify(chatData) + " user id : " + uid);
+        if (chatData && chatData.WebSocketURL) {
+            sdk.extendRequestId(data);
+            pub.set(`data_${botId}_${uid}`, JSON.stringify(data));
+            pub.set(`chatkey_${botId}_${uid}`, JSON.stringify(chatData));
+            createAndConfigureSockets(data, chatData);
+
+        } else if (chatData && chatData.Message) {
+            printLogStatement("In the operators not available");
+            data.chatEnded = true;
+            data.sendEndMessage = true;
+            data.message = chatData.Message;
+            clearAgentSession(data.message, data, callback);
+        } else {
+            printLogStatement("nothing is going on");
+            clearAgentSession(data.message, data, callback);
+        }
+    } catch (err) {
+        printLogStatement("Error whileexecuting the APIs", err);
+        let message = config.message.errorInChatInitiationMessage;
+        // message = message.replace("**Name**", data.context.session.BotUserSession.primerNombre)
+        clearAgentSession(message, data, callback);
+        return err;
+    }
+
+}
+
+
+
+async function initiateChat(messageData) {
+    return new Promise((resolve, reject) => {
+        try {
+            //console.log("inside initiateChat")
+            let uid = messageData.context.session.UserContext._id;
+            let isConnected
+            isConnected = true;
+            printLogStatement("", "agent transfer initiated for " + uid);
+            var name = messageData.context.userName || "";
+            var emailId = messageData.context.email || "";
+            var department = messageData.context.department || ""
+            var mobile = messageData.context.phoneNum || "_";
+            let body =
+            {
+                "language": "en-US",
+                "first_name": name,
+                "department": department,
+                "initial_question": messageData.context.chatHistory,
+                "reference": messageData.context.contractAccount,
+                "information": messageData.context.authenticationStatus,
+                "email": emailId,
+                "phone": mobile
+            };
+            const options = {
+                "method": "GET",
+                "url": `https://${config.agent.hostUrl}/aid/${config.agent.accountID}/rest/json/v1/createChat`,
+                "qs": {
+                    "Data": JSON.stringify(body),
+
+                    "IncludeBrandingValues": true
+                },
+                "headers": {
+                    "Authorization": `Basic ${config.agent.apiAccessKey_base64}`
+                },
+                "json": true
+            }
+            //console.log("data", JSON.stringify(body)),
+                //console.log("Options : " + JSON.stringify(options));
+                requestAPI(options).then((res) => {
+                    messageData.message = config.message.chatInitiationMessage;
+                    sdk.sendUserMessage(messageData, function () {
+                        let data_1 = basicMessageOverride(messageData);
+                        data_1.overrideMessagePayload = agentConnectionStatus(isConnected);
+                        sdk.sendUserMessage(data_1);
+                    })
+                    messageData.message = "";
+                    return resolve(res);
+                }).catch((err) => {
+                    return reject(err);
+                })
+        } catch (err) {
+            printLogStatement("Error while initaiting the chat", err);
+            throw new Error({ "err": "chat initiation failed" });
+        }
+    })
+
+}
+
+function visitorTyping(messageData, isTyping) {
+    try {
+        let uid = messageData.context.session.opts.userId;
+        pub.get(`chatkey_${botId}_${uid}`, async function (err, chatInput) {
+            if (chatInput) {
+                chatInput = JSON.parse(chatInput);
+                const options = {
+                    "method": "GET",
+                    "url": `https://${config.agent.hostUrl}/aid/${config.agent.accountID}/rest/json/v1/visitorTyping`,
+                    "qs": {
+                        "ClientID": chatInput.ClientID,
+                        "ChatKey": chatInput.ChatKey,
+                        "IsTyping": isTyping
+                    },
+                    "headers": {
+                        "Authorization": `Basic ${config.agent.apiAccessKey_base64}`
+                    },
+                    "json": true
+                }
+                requestAPI(options);
+            }
+        })
+    } catch (err) {
+        printLogStatement("Error while initaiting the chat", err);
+        throw new Error({ "err": "chat initiation failed" });
+    }
+}
+
+
+async function sendMessageToAgent(messageData, chatInput) {
+    try {
+        //Dont't use socket here. Use the sendMessage API
+        const options = {
+            "method": "GET",
+            "url": `https://${config.agent.hostUrl}/aid/${config.agent.accountID}/rest/json/v1/sendMessage`,
+            "qs": {
+                'ClientID': chatInput.ClientID,
+                "ChatKey": chatInput.ChatKey,
+                "Message": messageData.message
+            },
+            "headers": {
+                "Authorization": `Basic ${config.agent.apiAccessKey_base64}`
+            },
+            "json": true
+        }
+        requestAPI(options).then(res => {
+            //printLogStatement("User Message sent to Agent")
+        }).catch(err => {
+            printLogStatement("Error while sending user message to agent")
+        })
+        // socketMap[uid].send(JSON.stringify({
+        //     "method": "sendMessage",
+        //     "params": [
+        //         {
+        //             "ChatKey": chatInput.ChatKey,
+        //             "ChatMessageID": chatInput.ChatID,
+        //             "Message": messageData.message
+        //         }
+        //     ],
+        //     "id": uid
+        // }));
+    } catch (err) {
+        printLogStatement("Error while initaiting the chat", err);
+        throw new Error({ "err": "chat initiation failed" });
+    }
+}
+
+async function clearAgentSession(message, data, callback) {
+    let uid = data.context.session.opts.userId;
+    printLogStatement("clearAgentSession function invoked for user id" + uid);
+    var metaTags = {};
+    data.metaTags = metaTags;
+    //printLogStatement('&&&&&&&&&&&' + JSON.stringify(data) + "&&&&&&&" + data.sendEndMessage);
+    try {
+        data.message = message;
+        let uid = data.context.session.opts.userId;
+        pub.del(`data_${botId}_${uid}`);
+        //printLogStatement(" in clear agent session block");
+        if (!data.chatEnded) {
+            let res = clearAgentSessionAtGenesys(message, data, callback)
+        }
+        data.overrideMessagePayload = getOverrideMessagePayload(message, data.context.session.BotUserSession.lastMessage.channel);
+        data = basicMessageOverride(data, metaTags);
+        sdk.sendUserMessage(data, function () {
+            let data_1 = basicMessageOverride(data);
+            sdk.clearAgentSession(data_1, function () {
+                let data_2 = basicMessageOverride(data);
+                data_2.message = "DefaultDialogResponse"
+                sdk.sendBotMessage(data_2, function () {
+                    //console.log("in bot msg")
+                    let data_3 = basicMessageOverride(data_2);
+                    data_3.overrideMessagePayload = agentConnectionStatus(false);
+                    sdk.sendUserMessage(data_3);
+
+                }
+                )
+            });
+        });
+
+
+    } catch (err) {
+        printLogStatement("error while closing the agent session", err);
+        data.message = message;
+        messageData.overrideMessagePayload = getOverrideMessagePayload(message, data.context.session.BotUserSession.lastMessage.channel);;
+        sdk.sendUserMessage(data, function () {
+            let data_1 = basicMessageOverride(data);
+            sdk.clearAgentSession(data_1, function () {
+                pub.del(`data_${botId}_${uid}`);
+                pub.del(`chatkey_${botId}_${uid}`)
+            });
+        });
+    }
+
+}
+async function clearAgentSessionAtGenesys(message, data, callback) {
+    try {
+        let uid = data.context.session.opts.userId;
+        pub.get(`chatkey_${botId}_${uid}`, async function (err, chatInput) {
+            if (chatInput) {
+                chatInput = JSON.parse(chatInput);
+                const options = {
+                    "method": "GET",
+                    "url": `https://${config.agent.hostUrl}/aid/${config.agent.accountID}/rest/json/v1/finishChat`,
+                    "qs": {
+                        'ClientID': chatInput.ClientID,
+                        "ChatKey": chatInput.ChatKey
+                    },
+                    "headers": {
+                        "Authorization": `Basic ${config.agent.apiAccessKey_base64}`
+                    },
+                    "json": true
+                }
+                requestAPI(options);
+                pub.del(`chatkey_${botId}_${uid}`)
+            }
+        });
+    } catch (err) {
+        printLogStatement("error while closing the agent session at genesys", err);
+        throw new Error(err);
+    }
+}
+
+function getOverrideMessagePayload(message, channel) {
+    let overrideMessagePayload;
+    if (channel == "rtm") {
+        overrideMessagePayload = {
+            "body":  //message,
+                JSON.stringify({
+                    "type": "template",
+                    "payload": {
+                        "template_type": "live_agent",
+                        "text": message
+                    }
+                }),
+            "isTemplate": true
+        }
+    } else {
+        overrideMessagePayload = null;
+    }
+    return overrideMessagePayload;
+}
+
+function getQueuePositionTemplate(message, val) {
+    let overrideMessagePayload;
+    overrideMessagePayload = {
+        "body": JSON.stringify({
+            "type": "template",
+            "payload": {
+                "template_type": "queue_position",
+                "text": message,
+                "val": val
+            }
+        }),
+        "isTemplate": true
+    }
+    return overrideMessagePayload;
+}
+
+
+
+
+function displayTypingIndicator(isTyping) {
+    let overrideMessagePayload;
+    overrideMessagePayload = {
+        "body": JSON.stringify({
+            "type": "template",
+            "payload": {
+                "template_type": "display_indicator",
+                "isTyping": isTyping
+            }
+        }),
+        "isTemplate": true
+    }
+    return overrideMessagePayload;
+}
+
+function agentConnectionStatus(isConnected) {
+    let overrideMessagePayload;
+    overrideMessagePayload = {
+        "body": JSON.stringify({
+            "type": "template",
+            "payload": {
+                "template_type": "agent_status",
+                "isConnected": isConnected
+            }
+        }),
+        "isTemplate": true
+    }
+    return overrideMessagePayload;
+}
+
+function printLogStatement(key, value) {
+    console.log(new Date() + " ===> ", key, value);
+}
+
