@@ -1,0 +1,609 @@
+when agent is in offqueue this is response
+{
+  "systemToOrganizationMappings": {
+    "AVAILABLE": [
+      "6a3af858-942f-489d-9700-5f9bcdcdae9b"
+    ]
+  },
+  "results": [
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54"
+      },
+      "data": [
+        {
+          "metric": "oMemberUsers",
+          "stats": {
+            "count": 1
+          }
+        },
+        {
+          "metric": "oActiveUsers",
+          "stats": {
+            "count": 1
+          }
+        },
+        {
+          "metric": "oUserRoutingStatuses",
+          "qualifier": "OFF_QUEUE",
+          "stats": {
+            "count": 1
+          }
+        },
+        {
+          "metric": "oUserPresences",
+          "qualifier": "6a3af858-942f-489d-9700-5f9bcdcdae9b",
+          "stats": {
+            "count": 1
+          }
+        },
+        {
+          "metric": "oOffQueueUsers",
+          "qualifier": "6a3af858-942f-489d-9700-5f9bcdcdae9b",
+          "stats": {
+            "count": 1
+          }
+        }
+      ]
+    },
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54",
+        "mediaType": "callback"
+      },
+      "data": [
+        {
+          "metric": "oInteracting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oWaiting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oAlerting",
+          "stats": {
+            "count": 0
+          }
+        }
+      ]
+    },
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54",
+        "mediaType": "email"
+      },
+      "data": [
+        {
+          "metric": "oInteracting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oWaiting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oAlerting",
+          "stats": {
+            "count": 0
+          }
+        }
+      ]
+    },
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54",
+        "mediaType": "video"
+      },
+      "data": [
+        {
+          "metric": "oInteracting",
+          "stats": {
+            "count": 0
+          }
+        }
+      ]
+    },
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54",
+        "mediaType": "message"
+      },
+      "data": [
+        {
+          "metric": "oInteracting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oWaiting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oAlerting",
+          "stats": {
+            "count": 0
+          }
+        }
+      ]
+    },
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54",
+        "mediaType": "chat"
+      },
+      "data": [
+        {
+          "metric": "oInteracting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oWaiting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oAlerting",
+          "stats": {
+            "count": 0
+          }
+        }
+      ]
+    },
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54",
+        "mediaType": "voice"
+      },
+      "data": [
+        {
+          "metric": "oInteracting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oWaiting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oAlerting",
+          "stats": {
+            "count": 0
+          }
+        }
+      ]
+    }
+  ]
+}
+ 
+when agent is in On Queue this below is response
+{
+  "systemToOrganizationMappings": {
+    "ON_QUEUE": [
+      "e08eaf1b-ee47-4fa9-a231-1200e284798f"
+    ]
+  },
+  "results": [
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54"
+      },
+      "data": [
+        {
+          "metric": "oMemberUsers",
+          "stats": {
+            "count": 1
+          }
+        },
+        {
+          "metric": "oActiveUsers",
+          "stats": {
+            "count": 1
+          }
+        },
+        {
+          "metric": "oUserRoutingStatuses",
+          "qualifier": "IDLE",
+          "stats": {
+            "count": 1
+          }
+        },
+        {
+          "metric": "oOnQueueUsers",
+          "qualifier": "IDLE",
+          "stats": {
+            "count": 1
+          }
+        },
+        {
+          "metric": "oUserPresences",
+          "qualifier": "e08eaf1b-ee47-4fa9-a231-1200e284798f",
+          "stats": {
+            "count": 1
+          }
+        }
+      ]
+    },
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54",
+        "mediaType": "callback"
+      },
+      "data": [
+        {
+          "metric": "oInteracting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oWaiting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oAlerting",
+          "stats": {
+            "count": 0
+          }
+        }
+      ]
+    },
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54",
+        "mediaType": "email"
+      },
+      "data": [
+        {
+          "metric": "oInteracting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oWaiting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oAlerting",
+          "stats": {
+            "count": 0
+          }
+        }
+      ]
+    },
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54",
+        "mediaType": "video"
+      },
+      "data": [
+        {
+          "metric": "oInteracting",
+          "stats": {
+            "count": 0
+          }
+        }
+      ]
+    },
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54",
+        "mediaType": "message"
+      },
+      "data": [
+        {
+          "metric": "oInteracting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oWaiting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oAlerting",
+          "stats": {
+            "count": 0
+          }
+        }
+      ]
+    },
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54",
+        "mediaType": "chat"
+      },
+      "data": [
+        {
+          "metric": "oInteracting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oWaiting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oAlerting",
+          "stats": {
+            "count": 0
+          }
+        }
+      ]
+    },
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54",
+        "mediaType": "voice"
+      },
+      "data": [
+        {
+          "metric": "oInteracting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oWaiting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oAlerting",
+          "stats": {
+            "count": 0
+          }
+        }
+      ]
+    }
+  ]
+}
+ 
+when agent is in interacting this response:
+ 
+{
+  "systemToOrganizationMappings": {
+    "ON_QUEUE": [
+      "e08eaf1b-ee47-4fa9-a231-1200e284798f"
+    ]
+  },
+  "results": [
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54",
+        "mediaType": "message"
+      },
+      "data": [
+        {
+          "metric": "oInteracting",
+          "stats": {
+            "count": 1
+          },
+          "truncated": false,
+          "observations": [
+            {
+              "observationDate": "2025-03-21T12:09:58.450Z",
+              "conversationId": "d74c7ebf-50c4-45e9-b144-9207d5588759",
+              "sessionId": "99b555df-67da-41ca-876c-7bb44015c097",
+              "routingPriority": 0,
+              "userId": "337984b2-cf2f-49c8-84e9-3c2bc7b1f197",
+              "direction": "inbound",
+              "addressFrom": "f65ab881-9474-4de4-b924-5673ece88562",
+              "addressTo": "73de789b-9e68-4b97-847c-8fc57f37948a",
+              "requestedRoutings": [
+                "Standard"
+              ],
+              "usedRouting": "Standard"
+            }
+          ]
+        },
+        {
+          "metric": "oWaiting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oAlerting",
+          "stats": {
+            "count": 0
+          }
+        }
+      ]
+    },
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54"
+      },
+      "data": [
+        {
+          "metric": "oMemberUsers",
+          "stats": {
+            "count": 1
+          }
+        },
+        {
+          "metric": "oActiveUsers",
+          "stats": {
+            "count": 1
+          }
+        },
+        {
+          "metric": "oUserRoutingStatuses",
+          "qualifier": "INTERACTING",
+          "stats": {
+            "count": 1
+          }
+        },
+        {
+          "metric": "oOnQueueUsers",
+          "qualifier": "INTERACTING",
+          "stats": {
+            "count": 1
+          }
+        },
+        {
+          "metric": "oUserPresences",
+          "qualifier": "e08eaf1b-ee47-4fa9-a231-1200e284798f",
+          "stats": {
+            "count": 1
+          }
+        }
+      ]
+    },
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54",
+        "mediaType": "callback"
+      },
+      "data": [
+        {
+          "metric": "oInteracting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oWaiting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oAlerting",
+          "stats": {
+            "count": 0
+          }
+        }
+      ]
+    },
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54",
+        "mediaType": "email"
+      },
+      "data": [
+        {
+          "metric": "oInteracting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oWaiting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oAlerting",
+          "stats": {
+            "count": 0
+          }
+        }
+      ]
+    },
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54",
+        "mediaType": "video"
+      },
+      "data": [
+        {
+          "metric": "oInteracting",
+          "stats": {
+            "count": 0
+          }
+        }
+      ]
+    },
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54",
+        "mediaType": "chat"
+      },
+      "data": [
+        {
+          "metric": "oInteracting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oWaiting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oAlerting",
+          "stats": {
+            "count": 0
+          }
+        }
+      ]
+    },
+    {
+      "group": {
+        "queueId": "4c2bbcfd-4052-498a-9fbb-c0a5ada87a54",
+        "mediaType": "voice"
+      },
+      "data": [
+        {
+          "metric": "oInteracting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oWaiting",
+          "stats": {
+            "count": 0
+          }
+        },
+        {
+          "metric": "oAlerting",
+          "stats": {
+            "count": 0
+          }
+        }
+      ]
+    }
+  ]
+}
+ 
+  "metric": "oOnQueueUsers",
+          "qualifier": "INTERACTING",
+ 
+"metric": "oOnQueueUsers",
+          "qualifier": "IDLE",
+ 
