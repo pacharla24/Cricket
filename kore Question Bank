@@ -1,0 +1,82 @@
+Kore.ai Interview Question Bank
+
+1.	What version of Kore.ai you have used as part of your work experience?10.1
+
+2.	What are the new features introduced as part of the version you used?
+
+3.	What all different channels you integrated as part of your kore.ai project? IVR n chat
+
+4.	What is the need to move to Kore.ai platform and what benefits it provides compared to its competitors like Google Dialog flow or Amazon Lex?
+
+5.	What are all the different types of Bot’s available in Kore.ai platform? Standard bots – common bot
+Universal bots – linking multiple std bots 
+Smart bots – reusable functionality
+
+6.	What is the difference between Standard Bot / Smart Bot / Universal Bot?
+
+7.	What is Bot Kit? And how can it be integrated on a Kore.ai Bot’s? And what are the advantages of integrating Bot Kit to a Bot?
+Bot kit – set of libraries that enable interaction between users and assistants created on bot.
+Build->integration->botkit
+
+
+8.	Have you worked on IVR Channel integration as part of your Kore.ai implementation? If so what are the steps involved in enabling a IVR Channel on a Bot? 
+Deploy->Channels->IVR In configurations give botname bot id, client id, client secret and webhook url
+
+9.	What are the different Session Variable Types that Kore.ai supports? And give examples on what different Session Variable Types to be used on different use cases?
+
+10.	What is a Dialog Task? Build conversations that are connected to business logic
+
+11.	 And what are the different inbuilt nodes Kore.ai provides that can be used while developing a Dialog Task? Nodes are – user intent, dialog, entity,  confirmation, form, message,
+Bot action node – script, service, logic, webhook
+
+12.	What is the difference between a Script Node and a Logic Node?
+Script node – write custome javascript code
+logic node – use context variables and define complex transition conditions
+
+13.	How will you collect a user input in a Dialog Task? Using entity node
+
+14.	Name some of the different pre-configured user Inputs in an Entity Node that Kore.ai supports?
+
+15.	What is FAQ / Knowledge Graph?
+
+16.	What is an Environment Variable?
+
+17.	What is Context Variable in Bot?
+
+18.	On what occasions you will go for a Context Variable vs Environment Variable?
+
+19.	What are the different ways you can import a Knowledge Graph to an existing Bot?
+
+20.	What are the different HTTP methods that a Service Node supports in a Dialog Task?
+
+21.	What is Small Talk feature in a Kore.ai Standard Bot?
+
+22.	How to enable / configure an oAuth Authinator Profile in a standard Bot?
+
+23.	How would you pass the control from one dialog task to another dialog task in a Kore.ai Bot?
+
+24.	How would you pass the control from one Standard Bot to another Standard Bot?
+
+25.	What are patterns and concepts? And what is the difference between the two?
+
+26.	How will you create your own Patterns / Concepts and refer the same in your dialog task?
+
+27.	What are negative patterns? And how it can be used to enhance the intent detection in Bot?
+
+28.	What are standard responses in a Bot? How can you override a Standard response in a Bot?
+
+29.	What are Event Handlers? And what are the different Event Handlers available in a Standard Bot?
+
+30.	How will you import an Bot to the Bot Builder UI?
+
+31.	What are Bot Functions? And on what all scenarios you will go with using a Bot Functions?
+
+32.	What are different types of Testing options that Kore.ai Bot builder provides on a standard bot?
+
+33.	What is the difference between Utterance Testing and Batch Testing?
+
+34.	What are the different types of Interruption Settings available on a Dialog Task?
+
+35.	Name some of the API scopes that a standard bot offers as inbuilt option?
+
+36.	How will configure Agent Transfer Option in a standard Bot?
